@@ -12,24 +12,47 @@ class GistStorage {
     this.octokit = octokit;
 	this.config = config;
 	this.namespace = config.storage_namespace;
+	this.gist_id = '';
   }
   
-  async save(){
+  async save(name, obj){
+	const doc = JSON.stringify(obj);
+
 	if(this.exist()){
-		this.update()
+		this.update(name, doc)
 	}else{
-		this.create()
+		this.create(name, doc)
 	}
   }
 
-  async create(){
+  async create(name, doc){
 	try {
+		const filename = `${name}.json`;
 		const response = await this.octokit.request("POST /gists", {
-			"description": "Gist post test",
+			"description": this.namespace,
 			"public": true,
 			"files": {
-				"commondata.json": {
-					"content": "{\"datetime\":\"2012-04-23T18:25:43.511Z\"}"
+				[filename] : {
+					"content": doc
+				}
+			}
+		});
+		
+		this.gist_id = response.data.id;
+		console.log({ repos: response.data });
+	} catch (err) {
+		console.error({ error: err.message || err.toString() });
+	}
+  }
+
+  async update(name, doc){
+	try {
+		const filename = `${name}.json`;
+		const response = await this.octokit.request(`PATCH /gists/${this.gist_id}`, {
+			"description": this.namespace,
+			"files": {
+				[filename] : {
+					"content": doc
 				}
 			}
 		});
@@ -39,14 +62,20 @@ class GistStorage {
 		console.error({ error: err.message || err.toString() });
 	}
   }
-
+  
   async exist(){
 	try {
 		const response = await this.octokit.request("GET /gists/public");
 		
+		if (this.gist_id != '')
+			return true;
+
 		for(let gist of response.data) {
-			if(gist.description == this.namespace)
-				return true
+			if(gist.description == this.namespace){
+				this.gist_id = gist.id;
+
+				return true;
+			}
 		}
 
 		return false;
