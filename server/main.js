@@ -1,6 +1,9 @@
 const dotenv = require('dotenv');
-const GistStorage = require('./giststorage');
 const axios = require('axios');
+const cronJob = require('cron').CronJob;
+const GistStorage = require('./giststorage');
+const History = require('./history');
+
 dotenv.config({path: 'dot.env'});
 
 const {
@@ -15,37 +18,48 @@ const client = new GistStorage({
 
 const population = 100;
 const tolerance = 3;
-let generation = 1; // INCREMENT
+let generation = 1; // INCREMENT IT ON EACH CYCLE
 
-axios.get('https://hacker-news.firebaseio.com/v0/topstories.json')
+const job = new cronJob('*/20 * * * * *', () => {
+  // Increment Generation
+  generation++;
+
+  // Get HN news feed
+  axios.get('https://hacker-news.firebaseio.com/v0/topstories.json')
   .then(function (response) {
-    console.log(response);
+    var latest = response.data;
+    latest = latest.slice(0, 100);
+    console.log('Got news');
+
+    // Load history from local file
+    var history = History.load();
+
+    // Remove entries with generations out of tolerance
+    history = history.filter(entry => generation - entry.gen < tolerance);
+    console.log('Removed some entries from history');
+
+    // Scoring
+    for (let entry of latest){
+      if(history[entry]===undefined){
+        history[entry] = {gen:generation, score:1};
+      }else{
+        history[entry].score += 1;
+      }
+    }
+
+    // Save to local
+    History.save(history);
+    
+    // Filter last generation and save them at gist
+    let current = history
+      .filter(entry => entry.gen == generation)
+      .map(x=>({entry: x, score: history[x].score}));
+
+    client.save(current);
   })
   .catch(function (error) {
     console.log(error);
   });
+});
 
-let f = [22972661,22970120,22970771,22971656,22969533,22970693,22971863,22973455,22960225];
-let s = [22972661,22970120,22970771,22971656,22969531,22970693,22971863,22973454,22960224];
-//let t = [22972661,22970120,22970772,22971656,22969531,22970698,22971863,22973455,22960225];
-  
-let history = [];
-for (let entry of f){
-  history[entry] = {gen:generation, score:1};
-}
-
-// .  ..  ..  .. 
-
-history = history.filter(entry => generation - entry.gen < tolerance);
-console.log(history)
-for (let c of s){
-  if(history[c]===undefined){
-    history[c] = {gen:generation, score:1};
-  }else{
-    history[c].score += 1;
-  }
-}
-
-let current = history
-                .filter(entry => entry.gen == generation)
-                .map(x=>({entry: x, score: history[x].score}));
+job.start();
