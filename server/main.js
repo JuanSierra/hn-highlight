@@ -28,34 +28,38 @@ const job = new cronJob('*/20 * * * * *', () => {
   axios.get('https://hacker-news.firebaseio.com/v0/topstories.json')
   .then(function (response) {
     var latest = response.data;
-    latest = latest.slice(0, 100);
-    console.log('Got news');
+    latest = latest.slice(0, population).map(x=>x.toString());
 
+    console.log('Got news');
     // Load history from local file
     var history = History.load();
-
+    
     // Remove entries with generations out of tolerance
-    history = history.filter(entry => generation - entry.gen < tolerance);
-    console.log('Removed some entries from history');
+    if(Object.entries(history).length !== 0){
+      history = Object.keys(history)
+        .filter(key => generation - history[key].gen < tolerance)
+        .map( key => ({ [key]: history[key]}) )[0];
+      console.log('Removed some entries from history');
+    }
 
     // Scoring
     for (let entry of latest){
-      if(history[entry]===undefined){
-        history[entry] = {gen:generation, score:1};
+      if(history[entry]!==undefined){
+        history[entry].score = history[entry].score + 1;
       }else{
-        history[entry].score += 1;
+        history[entry] = { gen:generation, score:1 };
       }
     }
-
+    
     // Save to local
     History.save(history);
     
-    // Filter last generation and save them at gist
-    let current = history
-      .filter(entry => entry.gen == generation)
-      .map(x=>({entry: x, score: history[x].score}));
-
-    client.save(current);
+    // Assign historical score to last generation and save them at gist
+    let current = latest
+      .map(x=>({ entry: x, score:   [x].score }));
+    console.log('trying to save at gist')
+    //console.log(current)
+    //client.save('commondata', current);
   })
   .catch(function (error) {
     console.log(error);
