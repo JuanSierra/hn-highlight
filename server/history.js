@@ -2,11 +2,11 @@ const fs = require('fs')
 const path = "hn-history.json";
 
 class History {
-    static save(entries) {
+    static save(entries, generation) {
         let ts = Date.now();
         let date_ob = new Date(ts);
 
-        var serialized = JSON.stringify({date: date_ob, entries: entries} );
+        var serialized = JSON.stringify({date: date_ob, generation: generation, entries: entries} );
 
         try{
             fs.writeFileSync(path , serialized);
@@ -32,13 +32,13 @@ class History {
                     // this.date = deserialized.date; // internal reference
                     console.log("aqui")
                     console.log(deserialized.entries)
-                    return deserialized.entries;
+                    return [deserialized.entries, deserialized.generation];
                 }
 
                 throw "Fatal error when deserializing history"; 
             }
 
-            return {};
+            return [{}, 1];
         }
         catch(err) {
             console.error(err)

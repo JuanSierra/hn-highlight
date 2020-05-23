@@ -41,6 +41,7 @@ class GistStorage {
 		this.gist_id = response.data.id;
 		console.log({ repos: response.data });
 	} catch (err) {
+		console.error('create');
 		console.error({ error: err.message || err.toString() });
 	}
   }
@@ -59,16 +60,18 @@ class GistStorage {
 		
 		console.log({ repos: response.data });
 	} catch (err) {
+		console.error('update');
+		
 		console.error({ error: err.message || err.toString() });
 	}
   }
   
   async exist(){
 	try {
-		const response = await this.octokit.request("GET /gists/public");
-		
 		if (this.gist_id != '')
 			return true;
+
+		const response = await this.octokit.request("GET /gists/public");
 
 		for(let gist of response.data) {
 			if(gist.description == this.namespace){
@@ -80,6 +83,8 @@ class GistStorage {
 
 		return false;
 	} catch (err) {
+		console.error('exists');
+
 		console.error({ error: err.message || err.toString() });
 	}
   }
