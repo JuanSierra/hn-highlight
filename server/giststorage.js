@@ -18,10 +18,10 @@ class GistStorage {
   async save(name, obj){
 	const doc = JSON.stringify(obj);
 
-	if(this.exist()){
-		this.update(name, doc)
+	if(await this.exist()){
+		await this.update(name, doc)
 	}else{
-		this.create(name, doc)
+		await this.create(name, doc)
 	}
   }
 
@@ -39,7 +39,6 @@ class GistStorage {
 		});
 		
 		this.gist_id = response.data.id;
-		console.log({ repos: response.data });
 	} catch (err) {
 		console.error('create');
 		console.error({ error: err.message || err.toString() });
@@ -57,11 +56,7 @@ class GistStorage {
 				}
 			}
 		});
-		
-		console.log({ repos: response.data });
 	} catch (err) {
-		console.error('update');
-		
 		console.error({ error: err.message || err.toString() });
 	}
   }
@@ -71,7 +66,7 @@ class GistStorage {
 		if (this.gist_id != '')
 			return true;
 
-		const response = await this.octokit.request("GET /gists/public");
+		const response = await this.octokit.request("GET /gists");
 
 		for(let gist of response.data) {
 			if(gist.description == this.namespace){

@@ -19,7 +19,7 @@ const client = new GistStorage({
 const population = 100;
 const tolerance = 3;
 
-const job = new cronJob('*/20 * * * * *', () => {
+const job = new cronJob('* */20 * * * *', () => {
   // Get HN news feed
   axios.get('https://hacker-news.firebaseio.com/v0/topstories.json')
   .then(function (response) {

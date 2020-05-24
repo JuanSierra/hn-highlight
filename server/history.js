@@ -14,12 +14,6 @@ class History {
         } catch (err) {
             console.error({ error: err.message || err.toString() });
         }
-            /*fs.writeFile(this.path , serialized, function (err,data) {
-            if (err) {
-              return console.log(err);
-            }
-            console.log(`Data saved! ${data}`);
-        });*/
     }
 
     static load(){
